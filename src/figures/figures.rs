@@ -10,10 +10,18 @@ pub struct Tower {
     pub color: utils::Color,
 }
 
-pub struct Rook {}
+pub struct Rook {
+    pub color: utils::Color,
+}
 
-pub struct Queen {}
+pub struct Queen {
+    pub color: utils::Color,
+}
 
-pub struct Bishop {}
+pub struct Bishop {
+    pub color: utils::Color,
+}
 
-pub struct King {}
+pub struct King {
+    pub color: utils::Color,
+}

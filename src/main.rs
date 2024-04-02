@@ -7,13 +7,13 @@
 use colored::Colorize;
 use std::io;
 
+use crate::figures::utils::Coords;
 
 pub mod figures {
     pub mod figures;
     pub mod movable;
     pub mod utils;
 }
-
 
 struct Board {
     squares: [[Option<Box<dyn figures::movable::Movable>>; 8]; 8],
@@ -30,29 +30,74 @@ fn print_board(b: &Board, selected: Option<figures::utils::Coords>) {
     for (i, row) in b.squares.iter().enumerate() {
         print!(" {} ", i);
         for (j, col) in row.iter().enumerate() {
-            match col {
-                Some(square) if i as u8 == selected.0 && j as u8 == selected.1 => print!(
-                    "{}{}{}",
-                    " ".black().on_purple(),
-                    square.get_symbol().to_string().black().on_purple(),
-                    " ".black().on_purple()
+            let curr_field_selected = i as u8 == selected.0 && j as u8 == selected.1;
+
+            let is_square_light = i % 2 == j % 2;
+
+            let symbol = match col {
+                Some(square) => square.get_symbol(),
+                None => ' ',
+            };
+
+            // defaults
+            let (default_fg, default_bg) = match (is_square_light) {
+                true if curr_field_selected => {
+                    (symbol.to_string().red().on_white(), " ".black().on_white())
+                }
+                true => (
+                    symbol.to_string().black().on_white(),
+                    " ".black().on_white(),
                 ),
-                Some(square) => match (*square).get_color() {
-                    figures::utils::Color::Black => print!(
-                        "{}{}{}",
-                        " ".white().on_bright_black(),
-                        square.get_symbol().to_string().white().on_bright_black(),
-                        " ".white().on_bright_black()
+                false if curr_field_selected => {
+                    (symbol.to_string().red().on_black(), " ".red().on_black())
+                }
+                false => (
+                    symbol.to_string().white().on_black(),
+                    " ".white().on_black(),
+                ),
+            };
+
+            let (fg, bg) = match (col, curr_field_selected) {
+                (Some(_), true) => match is_square_light {
+                    true => (
+                        symbol.to_string().red().on_truecolor(155, 0, 0),
+                        " ".to_string().truecolor(155, 0, 0).on_truecolor(155, 0, 0),
                     ),
-                    figures::utils::Color::White => print!(
-                        "{}{}{}",
-                        " ".black().on_white(),
-                        square.get_symbol().to_string().black().on_white(),
-                        " ".black().on_white()
+                    false => (
+                        symbol.to_string().red().on_truecolor(160, 160, 160),
+                        " ".to_string().black().on_truecolor(160, 160, 160),
                     ),
                 },
-                None => print!("{}", " _ ".black().on_bright_yellow()),
-            }
+
+                (Some(square), false) => match square.get_color() {
+                    figures::utils::Color::Black => match is_square_light {
+                        true => (
+                            symbol.to_string().black().on_white(),
+                            " ".to_string().white().on_white(),
+                        ),
+                        false => (
+                            symbol.to_string().black().on_truecolor(160, 160, 160),
+                            " ".to_string().black().on_truecolor(160, 160, 160),
+                        ),
+                    },
+                    figures::utils::Color::White => match is_square_light {
+                        true => (
+                            symbol.to_string().white().on_truecolor(100, 100, 100),
+                            " ".to_string()
+                                .truecolor(100, 100, 100)
+                                .on_truecolor(100, 100, 100),
+                        ),
+                        false => (
+                            symbol.to_string().white().on_black(),
+                            " ".to_string().black().on_black(),
+                        ),
+                    },
+                },
+                (None, _) => (default_fg, default_bg),
+            };
+
+            print!("{}{}{}", bg, fg, bg)
+
         }
         print!("\n");
     }
@@ -61,18 +106,30 @@ fn print_board(b: &Board, selected: Option<figures::utils::Coords>) {
 fn move_figure(b: &Board, from: figures::utils::Coords, to: figures::utils::Coords) {}
 
 fn main() {
-    let b = Board {
+    let mut b = Board {
         squares: [
             [
                 Some(Box::new(figures::figures::Tower {
                     color: figures::utils::Color::Black,
                 })),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                Some(Box::new(figures::figures::Knight {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Bishop {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Queen {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::King {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Bishop {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Knight {
+                    color: figures::utils::Color::Black,
+                })),
                 Some(Box::new(figures::figures::Tower {
                     color: figures::utils::Color::Black,
                 })),
@@ -81,13 +138,25 @@ fn main() {
                 Some(Box::new(figures::figures::Pawn {
                     color: figures::utils::Color::Black,
                 })),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                Some(Box::new(figures::figures::Tower {
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                Some(Box::new(figures::figures::Pawn {
                     color: figures::utils::Color::Black,
                 })),
             ],
@@ -99,12 +168,24 @@ fn main() {
                 Some(Box::new(figures::figures::Pawn {
                     color: figures::utils::Color::White,
                 })),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
                 Some(Box::new(figures::figures::Pawn {
                     color: figures::utils::Color::White,
                 })),
@@ -113,12 +194,24 @@ fn main() {
                 Some(Box::new(figures::figures::Tower {
                     color: figures::utils::Color::White,
                 })),
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
+                Some(Box::new(figures::figures::Knight {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Bishop {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Queen {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::King {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Bishop {
+                    color: figures::utils::Color::White,
+                })),
+                Some(Box::new(figures::figures::Knight {
+                    color: figures::utils::Color::White,
+                })),
                 Some(Box::new(figures::figures::Tower {
                     color: figures::utils::Color::White,
                 })),
@@ -126,10 +219,8 @@ fn main() {
         ],
     };
 
-    print_board(&b, None);
-
     loop {
-        // b.squares[0][2] = b.squares[1][0].take();
+        print_board(&b, None);
 
         let mut input = String::new();
 
@@ -148,7 +239,29 @@ fn main() {
             continue;
         }
 
+        let from = Coords(vec[0], vec[1]);
+
         print_board(&b, Some(selection));
+
+        println!("select a target");
+        input.clear();
+
+        io::stdin().read_line(&mut input).expect("err reading");
+
+        let vec2 = input
+            .split_whitespace()
+            .map(|x| x.parse::<u8>().expect("parse error"))
+            .collect::<Vec<u8>>();
+
+        if vec2.len() < 2 {
+            println!("pls input two numbers");
+            continue;
+        }
+
+        let targ = Coords(vec2[0], vec2[1]);
+
+        b.squares[targ.0 as usize][targ.1 as usize] =
+            b.squares[from.0 as usize][from.1 as usize].take();
 
         // println!("{}", x);
     }
