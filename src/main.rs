@@ -1,134 +1,157 @@
-use std::fmt::{Display, Formatter, Result};
-use std::io::Write;
+// https://users.rust-lang.org/t/why-doesnt-rust-allow-fields-in-trait/52191/9
+// https://stackoverflow.com/a/71961087
+// https://stackoverflow.com/questions/63407245/what-is-an-idiomatic-way-to-have-multiple-structs-with-the-same-properties-in-ru
+// https://stackoverflow.com/questions/32552593/is-it-possible-for-one-struct-to-extend-an-existing-struct-keeping-all-the-fiel
+// https://d3s.mff.cuni.cz/teaching/nprg073/lecture_4/
 
-pub trait Colored {
-    fn get_color(&self) -> Color;
+use colored::Colorize;
+use std::io;
 
+
+pub mod figures {
+    pub mod figures;
+    pub mod movable;
+    pub mod utils;
 }
 
-pub trait Movable {
-    fn can_go(&self, from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> bool;
+
+struct Board {
+    squares: [[Option<Box<dyn figures::movable::Movable>>; 8]; 8],
 }
 
-impl Movable for Rook {
-    fn can_go(&self, from_x: i32, from_y: i32, to_x: i32, to_y: i32) -> bool {
-        match (from_x, from_y, to_x, to_y) {
-            (a, b, c, d) if (c == a) && (self.color == Color::Black) && (d == b+1) => true,
-            (a, b, c, d) if (c == a) && (self.color == Color::White) && (d == b-1) => true,
-            _ => false
+fn print_board(b: &Board, selected: Option<figures::utils::Coords>) {
+    print!("   ");
+    for (i, _) in b.squares.iter().enumerate() {
+        print!(" {} ", i)
+    }
+    print!("\n");
+    let selected = selected.unwrap_or(figures::utils::Coords(10, 10));
 
+    for (i, row) in b.squares.iter().enumerate() {
+        print!(" {} ", i);
+        for (j, col) in row.iter().enumerate() {
+            match col {
+                Some(square) if i as u8 == selected.0 && j as u8 == selected.1 => print!(
+                    "{}{}{}",
+                    " ".black().on_purple(),
+                    square.get_symbol().to_string().black().on_purple(),
+                    " ".black().on_purple()
+                ),
+                Some(square) => match (*square).get_color() {
+                    figures::utils::Color::Black => print!(
+                        "{}{}{}",
+                        " ".white().on_bright_black(),
+                        square.get_symbol().to_string().white().on_bright_black(),
+                        " ".white().on_bright_black()
+                    ),
+                    figures::utils::Color::White => print!(
+                        "{}{}{}",
+                        " ".black().on_white(),
+                        square.get_symbol().to_string().black().on_white(),
+                        " ".black().on_white()
+                    ),
+                },
+                None => print!("{}", " _ ".black().on_bright_yellow()),
+            }
         }
+        print!("\n");
     }
 }
 
-pub trait Figure: Colored + Display {}
+fn move_figure(b: &Board, from: figures::utils::Coords, to: figures::utils::Coords) {}
 
-impl Figure for Rook {}
-impl Figure for Tower {}
-
-impl Colored for Rook {
-    fn get_color(&self) -> Color {
-        self.color
-    }
-}
-
-impl Colored for Tower {
-    fn get_color(&self) -> Color {
-        self.color
-    }
-}
-
-impl Display for Rook {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "r")
-    }
-}
-
-impl Display for Tower {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "t")
-    }
-}
-
-struct Rook {
-    color:  Color
-}
-
-#[test]
-fn rook_movement() {
-    let b = Rook {color: Color::Black};
-    let w = Rook {color: Color::White};
-
-    assert_eq!(b.can_go(0, 0, 0, 1), true);
-    assert_eq!(w.can_go(0, 7, 0, 6), true);
-
-    assert_eq!(b.can_go(0, 0, 1, 1), true);
-}
-
-struct Tower {
-    color: Color
-}
-
-pub struct Board {
-    positions: [[Option<Box<dyn Figure>>; 8]; 8]
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum Color {
-    Black,
-    White
-}
-
-impl Board {
-    pub fn new() -> Self {
-        Self {positions: [
-            [Some(Box::new(Tower { color: Color::Black })),None,None,None,None,None,None,None],
-            [Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black })),
-             Some(Box::new(Rook { color: Color::Black }))
+fn main() {
+    let b = Board {
+        squares: [
+            [
+                Some(Box::new(figures::figures::Tower {
+                    color: figures::utils::Color::Black,
+                })),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(Box::new(figures::figures::Tower {
+                    color: figures::utils::Color::Black,
+                })),
             ],
-            [None,None,None,None,None,None,None,None],
-            [None,None,None,None,None,None,None,None],
-            [None,None,None,None,None,None,None,None],
-            [None,None,None,None,None,None,None,None],
-            [None,None,None,None,None,None,None,None],
-            [None,None,None,None,None,None,None,None],
-        ] }
+            [
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::Black,
+                })),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(Box::new(figures::figures::Tower {
+                    color: figures::utils::Color::Black,
+                })),
+            ],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [None, None, None, None, None, None, None, None],
+            [
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(Box::new(figures::figures::Pawn {
+                    color: figures::utils::Color::White,
+                })),
+            ],
+            [
+                Some(Box::new(figures::figures::Tower {
+                    color: figures::utils::Color::White,
+                })),
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                Some(Box::new(figures::figures::Tower {
+                    color: figures::utils::Color::White,
+                })),
+            ],
+        ],
+    };
+
+    print_board(&b, None);
+
+    loop {
+        // b.squares[0][2] = b.squares[1][0].take();
+
+        let mut input = String::new();
+
+        println!("select a figure");
+        io::stdin().read_line(&mut input).expect("err reading");
+
+        let vec = input
+            .split_whitespace()
+            .map(|x| x.parse::<u8>().expect("parse error"))
+            .collect::<Vec<u8>>();
+
+        let selection = figures::utils::Coords(vec[0], vec[1]);
+
+        if vec.len() < 2 {
+            println!("pls input two numbers");
+            continue;
+        }
+
+        print_board(&b, Some(selection));
+
+        // println!("{}", x);
     }
 
-    pub fn get(&self, x: usize, y: usize) -> &Option<Box<dyn Figure>> {
-        &self.positions[x][y]
-    }
-}
-
-
-#[test]
-fn create_board() {
-
-    let b = Board::new();
-    let z = match b.get(1,1) {
-        Some(_x) => 'a',
-        None => 'n'
-    };
-    assert_eq!(z, 'a');
-
-    let z = match b.get(0,0) {
-        Some(_x) => 'a',
-        None => 'n'
-    };
-    assert_eq!(z, 'a');
-}
-
-fn main() -> std::io::Result<()> {
-    let mut w = Vec::new();
-
-    write!(&mut w, "test")?;
-
-    // let _rk = Rook { coords: (0,0) };
-    Ok(())
+    // print_board(&b)
 }
