@@ -1,270 +1,162 @@
-// https://users.rust-lang.org/t/why-doesnt-rust-allow-fields-in-trait/52191/9
-// https://stackoverflow.com/a/71961087
-// https://stackoverflow.com/questions/63407245/what-is-an-idiomatic-way-to-have-multiple-structs-with-the-same-properties-in-ru
-// https://stackoverflow.com/questions/32552593/is-it-possible-for-one-struct-to-extend-an-existing-struct-keeping-all-the-fiel
-// https://d3s.mff.cuni.cz/teaching/nprg073/lecture_4/
+use std::{collections::HashMap, io::stdin};
 
-use colored::Colorize;
-use std::io;
-
-use crate::figures::utils::Coords;
-
-pub mod figures {
-    pub mod figures;
-    pub mod movable;
-    pub mod utils;
+fn read_num() -> u32 {
+    let i = stdin();
+    let mut buf = String::new();
+    i.read_line(&mut buf).unwrap();
+    buf.trim_end().parse().unwrap()
 }
 
-struct Board {
-    squares: [[Option<Box<dyn figures::movable::Movable>>; 8]; 8],
+struct Game {
+    board: HashMap<Coords, Figure>,
+    at_turn: Color,
+    turns: u32,
+    winner: Option<Color>,
 }
 
-fn print_board(b: &Board, selected: Option<figures::utils::Coords>) {
-    print!("   ");
-    for (i, _) in b.squares.iter().enumerate() {
-        print!(" {} ", i)
-    }
-    print!("\n");
-    let selected = selected.unwrap_or(figures::utils::Coords(10, 10));
+impl Game {
+    fn new() -> Self {
+        let mut board: HashMap<Coords, Figure> = HashMap::new();
 
-    for (i, row) in b.squares.iter().enumerate() {
-        print!(" {} ", i);
-        for (j, col) in row.iter().enumerate() {
-            let curr_field_selected = i as u8 == selected.0 && j as u8 == selected.1;
-
-            let is_square_light = i % 2 == j % 2;
-
-            let symbol = match col {
-                Some(square) => square.get_symbol(),
-                None => ' ',
-            };
-
-            // defaults
-            let (default_fg, default_bg) = match (is_square_light) {
-                true if curr_field_selected => {
-                    (symbol.to_string().red().on_white(), " ".black().on_white())
-                }
-                true => (
-                    symbol.to_string().black().on_white(),
-                    " ".black().on_white(),
-                ),
-                false if curr_field_selected => {
-                    (symbol.to_string().red().on_black(), " ".red().on_black())
-                }
-                false => (
-                    symbol.to_string().white().on_black(),
-                    " ".white().on_black(),
-                ),
-            };
-
-            let (fg, bg) = match (col, curr_field_selected) {
-                (Some(_), true) => match is_square_light {
-                    true => (
-                        symbol.to_string().red().on_truecolor(155, 0, 0),
-                        " ".to_string().truecolor(155, 0, 0).on_truecolor(155, 0, 0),
-                    ),
-                    false => (
-                        symbol.to_string().red().on_truecolor(160, 160, 160),
-                        " ".to_string().black().on_truecolor(160, 160, 160),
-                    ),
+        for i in 0..8 {
+            board.insert(
+                (1, i),
+                Figure {
+                    color: Color::White,
+                    variant: FigureVariant::Pawn,
                 },
-
-                (Some(square), false) => match square.get_color() {
-                    figures::utils::Color::Black => match is_square_light {
-                        true => (
-                            symbol.to_string().black().on_white(),
-                            " ".to_string().white().on_white(),
-                        ),
-                        false => (
-                            symbol.to_string().black().on_truecolor(160, 160, 160),
-                            " ".to_string().black().on_truecolor(160, 160, 160),
-                        ),
-                    },
-                    figures::utils::Color::White => match is_square_light {
-                        true => (
-                            symbol.to_string().white().on_truecolor(100, 100, 100),
-                            " ".to_string()
-                                .truecolor(100, 100, 100)
-                                .on_truecolor(100, 100, 100),
-                        ),
-                        false => (
-                            symbol.to_string().white().on_black(),
-                            " ".to_string().black().on_black(),
-                        ),
-                    },
-                },
-                (None, _) => (default_fg, default_bg),
-            };
-
-            print!("{}{}{}", bg, fg, bg)
-
+            );
         }
-        print!("\n");
+
+        Game {
+            board,
+            at_turn: Color::White,
+            turns: 0,
+            winner: None,
+        }
+    }
+
+    fn print(&self) {
+        for i in 0..8 {
+            for j in 0..8 {
+                match self.board.get(&(i, j)) {
+                    Some(figure) => print!(
+                        "{}{} ",
+                        figure.get_color_symbol(),
+                        figure.variant.get_symbol()
+                    ),
+                    None => print!("   "),
+                }
+            }
+
+            println!("");
+        }
+    }
+
+    fn turn(&mut self) -> Result<(), ()> {
+        let sx = read_num();
+        let sy = read_num();
+
+        let tx = read_num();
+        let ty = read_num();
+
+        let selected = self.board.get(&(sx, sy)).ok_or(())?;
+        let targeted = self.board.get(&(tx, ty));
+
+        if let Some(x) = targeted {
+            if selected.can_take(&(sx, sy), self, &(tx, ty)) {
+                let selected = self.board.remove(&(sx, sy)).ok_or(())?;
+                self.board.insert((tx, ty), selected);
+            }
+        } else if selected.can_go(&(sx, sy), self, &(tx, ty)) {
+            let selected = self.board.remove(&(sx, sy)).ok_or(())?;
+            self.board.insert((tx, ty), selected);
+        };
+        Ok(())
+    }
+}
+type Coords = (u32, u32);
+
+enum Color {
+    White,
+    Black,
+}
+
+struct Figure {
+    color: Color,
+    variant: FigureVariant,
+}
+
+enum FigureVariant {
+    Rook,
+    Pawn,
+    Knight,
+    Queen,
+    Bishop,
+    King,
+}
+
+impl Figure {
+    fn can_go(&self, field: &Coords, game: &Game, target: &Coords) -> bool {
+        match self.variant {
+            FigureVariant::Pawn => {
+                let y_diff: i8 = match self.color {
+                    Color::White => -1,
+                    Color::Black => 1,
+                };
+
+                field.0 == target.0 && (target.1 as i8 - field.1 as i8) == y_diff
+            }
+            _ => false,
+        }
+        // match self.variant {
+        //     FigureVariant::Pawn => target
+        //     _ => {}
+        // }
+    }
+
+    fn can_take(&self, field: &Coords, game: &Game, target: &Coords) -> bool {
+        match self.variant {
+            FigureVariant::Pawn => {
+                let y_diff: i8 = match self.color {
+                    Color::White => -1,
+                    Color::Black => 1,
+                };
+
+                field.0.abs_diff(target.0) == 1 && (target.1 as i8 - field.1 as i8) == y_diff
+            }
+            _ => false,
+        }
+    }
+
+    fn get_color_symbol(&self) -> char {
+        match self.color {
+            Color::White => 'w',
+            Color::Black => 'b',
+        }
     }
 }
 
-fn move_figure(b: &Board, from: figures::utils::Coords, to: figures::utils::Coords) {}
+impl FigureVariant {
+    fn get_symbol(&self) -> char {
+        match self {
+            Self::Rook => 'r',
+            Self::Pawn => 'p',
+            Self::Knight => 'k',
+            Self::Queen => 'q',
+            Self::Bishop => 'b',
+            Self::King => 'K',
+        }
+    }
+}
 
-fn main() {
-    let mut b = Board {
-        squares: [
-            [
-                Some(Box::new(figures::figures::Tower {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Knight {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Bishop {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Queen {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::King {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Bishop {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Knight {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Tower {
-                    color: figures::utils::Color::Black,
-                })),
-            ],
-            [
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::Black,
-                })),
-            ],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Pawn {
-                    color: figures::utils::Color::White,
-                })),
-            ],
-            [
-                Some(Box::new(figures::figures::Tower {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Knight {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Bishop {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Queen {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::King {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Bishop {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Knight {
-                    color: figures::utils::Color::White,
-                })),
-                Some(Box::new(figures::figures::Tower {
-                    color: figures::utils::Color::White,
-                })),
-            ],
-        ],
-    };
+fn main() -> Result<(), ()> {
+    let mut g = Game::new();
+    g.print();
 
     loop {
-        print_board(&b, None);
-
-        let mut input = String::new();
-
-        println!("select a figure");
-        io::stdin().read_line(&mut input).expect("err reading");
-
-        let vec = input
-            .split_whitespace()
-            .map(|x| x.parse::<u8>().expect("parse error"))
-            .collect::<Vec<u8>>();
-
-        let selection = figures::utils::Coords(vec[0], vec[1]);
-
-        if vec.len() < 2 {
-            println!("pls input two numbers");
-            continue;
-        }
-
-        let from = Coords(vec[0], vec[1]);
-
-        print_board(&b, Some(selection));
-
-        println!("select a target");
-        input.clear();
-
-        io::stdin().read_line(&mut input).expect("err reading");
-
-        let vec2 = input
-            .split_whitespace()
-            .map(|x| x.parse::<u8>().expect("parse error"))
-            .collect::<Vec<u8>>();
-
-        if vec2.len() < 2 {
-            println!("pls input two numbers");
-            continue;
-        }
-
-        let targ = Coords(vec2[0], vec2[1]);
-
-        b.squares[targ.0 as usize][targ.1 as usize] =
-            b.squares[from.0 as usize][from.1 as usize].take();
-
-        // println!("{}", x);
+        g.turn();
     }
 
-    // print_board(&b)
+    Ok(())
 }

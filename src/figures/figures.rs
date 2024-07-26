@@ -6,10 +6,6 @@ pub struct Pawn {
 pub struct Knight {
     pub color: utils::Color,
 }
-pub struct Tower {
-    pub color: utils::Color,
-}
-
 pub struct Rook {
     pub color: utils::Color,
 }

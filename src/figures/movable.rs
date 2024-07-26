@@ -20,12 +20,12 @@ pub trait Movable {
     }
 }
 
-impl Movable for figures::Tower {
+impl Movable for figures::Rook {
     fn can_go_to_coords(&self, from: utils::Coords, target: utils::Coords) -> bool {
         from.0 == target.0 || from.1 == target.1
     }
     fn get_symbol(&self) -> char {
-        't'
+        '♜'
     }
     fn get_color(&self) -> utils::Color {
         self.color
@@ -37,7 +37,7 @@ impl Movable for figures::Pawn {
         from.0 == target.0 || from.1 == target.1
     }
     fn get_symbol(&self) -> char {
-        'p'
+        '♟'
     }
     fn get_color(&self) -> utils::Color {
         self.color
@@ -52,7 +52,7 @@ impl Movable for figures::Bishop {
         from.0 == target.0 || from.1 == target.1
     }
     fn get_symbol(&self) -> char {
-        'b'
+        '♝'
     }
     fn get_color(&self) -> utils::Color {
         self.color
@@ -67,7 +67,7 @@ impl Movable for figures::King {
         from.0 == target.0 || from.1 == target.1
     }
     fn get_symbol(&self) -> char {
-        'K'
+        '♚'
     }
     fn get_color(&self) -> utils::Color {
         self.color
@@ -82,7 +82,7 @@ impl Movable for figures::Queen {
         from.0 == target.0 || from.1 == target.1
     }
     fn get_symbol(&self) -> char {
-        'q'
+        '♛'
     }
     fn get_color(&self) -> utils::Color {
         self.color
@@ -97,7 +97,7 @@ impl Movable for figures::Knight {
         from.0 == target.0 || from.1 == target.1
     }
     fn get_symbol(&self) -> char {
-        'k'
+        '♞'
     }
     fn get_color(&self) -> utils::Color {
         self.color
