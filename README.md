@@ -1,5 +1,7 @@
 # chess in rust
 
+![demo](./demo.gif)
+
 ## todo
 
 - some kind of e2e test
