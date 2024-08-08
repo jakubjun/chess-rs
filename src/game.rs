@@ -16,14 +16,22 @@ fn get_bg_color(coords: Coords) -> CustomColor {
     }
 }
 
-fn read_algebraic() -> Result<(Coords, Coords), ()> {
+fn read_algebraic() -> Result<(Coords, Coords), &'static str> {
     let i = stdin();
     let mut buf = String::new();
-    i.read_line(&mut buf).or(Err(()))?;
-    let from_x: char = buf[0..1].parse().or(Err(()))?;
-    let from_y: u8 = buf[1..2].parse().or(Err(()))?;
-    let to_x: char = buf[2..3].parse().or(Err(()))?;
-    let to_y: u8 = buf[3..4].parse().or(Err(()))?;
+    i.read_line(&mut buf).or(Err("unable to read input"))?;
+    let from_x: char = buf[0..1]
+        .parse()
+        .or(Err("unable to parse 'from_x', it has to be a letter"))?;
+    let from_y: u8 = buf[1..2]
+        .parse()
+        .or(Err("unable to parse 'from_y', it has to be a number"))?;
+    let to_x: char = buf[2..3]
+        .parse()
+        .or(Err("unable to parse 'to_x', it has to be a letter"))?;
+    let to_y: u8 = buf[3..4]
+        .parse()
+        .or(Err("unable to parse 'to_y', it has to be a number"))?;
     Ok(((from_x, from_y), (to_x, to_y)))
 }
 
@@ -80,29 +88,33 @@ impl Game {
         }
     }
 
-    fn turn(&mut self) -> Result<(), ()> {
+    fn turn(&mut self) -> Result<(), &str> {
         println!("{}", "----------------------------".cyan());
-        loop {
-            println!("{}'s turn", self.at_turn);
-            println!("{}", self);
-            println!("input algebraic notation, eg 'a1a2': ");
-            let ((sx, sy), (tx, ty)) = read_algebraic()?;
+        println!("{}'s turn", self.at_turn);
+        println!("{}", self);
+        println!("input algebraic notation, eg 'a1a2': ");
+        let ((sx, sy), (tx, ty)) = read_algebraic()?;
 
-            let selected = self.board.get(&(sx, sy)).ok_or(())?;
+        let selected = self
+            .board
+            .remove(&(sx, sy))
+            .ok_or("theres no figure on that field")?;
 
-            if selected.color != self.at_turn {
-                println!("{}", "err: cannot move opponent's figure".red());
-                continue;
-            }
-
-            if selected.can_go(&(sx, sy), self, &(tx, ty)) {
-                let selected = self.board.remove(&(sx, sy)).ok_or(())?;
-                self.board.insert((tx, ty), selected);
-                break;
-            } else {
-                println!("{}", "err: this figure cannot go there".red());
-            };
+        if selected.color != self.at_turn {
+            return Err("cannot move opponent's figure");
         }
+
+        match selected.can_go(&(sx, sy), self, &(tx, ty)) {
+            Ok(_) => {
+                self.board.insert((tx, ty), selected);
+                Ok(())
+            }
+            Err(e) => {
+                self.board.insert((sx, sy), selected);
+                Err(e)
+            }
+        }?;
+
         self.switch_sides();
         Ok(())
     }
@@ -123,11 +135,13 @@ impl Game {
         todo!()
     }
 
-    pub fn game_loop(&mut self) -> Result<(), ()> {
+    pub fn game_loop(&mut self) {
         while self.winner.is_none() {
-            self.turn()?;
+            match self.turn() {
+                Ok(_) => (),
+                Err(e) => println!("{}", format!("err: {}", e).red()),
+            };
         }
-        Ok(())
     }
 }
 

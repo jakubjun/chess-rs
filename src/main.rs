@@ -8,6 +8,6 @@ mod game;
 
 fn main() -> Result<(), ()> {
     let mut g = Game::new();
-    g.game_loop()?;
+    g.game_loop();
     Ok(())
 }

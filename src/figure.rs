@@ -43,16 +43,14 @@ pub enum FigureVariant {
 }
 
 impl Figure {
-    pub fn can_go(&self, field: &Coords, game: &Game, target: &Coords) -> bool {
+    pub fn can_go(&self, field: &Coords, game: &Game, target: &Coords) -> Result<(), &'static str> {
         if field == target {
-            println!("select different field than the current one");
-            return false;
+            return Err("select different field than the current one");
         }
 
         if let Some(target) = game.board.get(target) {
             if target.color == self.color {
-                println!("cant take your figure");
-                return false;
+                return Err("cant take your figure");
             }
         }
 
@@ -77,10 +75,14 @@ impl Figure {
                 }
 
                 // TODO this needs to check if the 'across' field is occupied by an opponent
-                let goes_across = (field.0 as i8).abs_diff(target.0 as i8) == 1
+                let en_passant = (field.0 as i8).abs_diff(target.0 as i8) == 1
                     && (target.1 as i8 - field.1 as i8) == y_diff;
 
-                goes_straight || goes_across
+                if goes_straight || en_passant {
+                    Ok(())
+                } else {
+                    Err("the figure cannot go there")
+                }
             }
             FigureVariant::Rook => {
                 if target.1 == field.1 && target.0 != field.0 {
@@ -95,10 +97,10 @@ impl Figure {
                             .get(&(('a' as u8 + i) as char, field.1))
                             .is_some()
                         {
-                            return false;
+                            return Err("something is in the way");
                         }
                     }
-                    true
+                    Ok(())
                 } else if target.1 != field.1 && target.0 == field.0 {
                     let range = if field.1 > target.1 {
                         target.1..field.1 - 1
@@ -107,15 +109,15 @@ impl Figure {
                     };
                     for i in range {
                         if game.board.get(&(field.0, i)).is_some() {
-                            return false;
+                            return Err("something is in the way");
                         }
                     }
-                    true
+                    Ok(())
                 } else {
-                    false
+                    Err("the figure cannot go there")
                 }
             }
-            _ => false,
+            _ => unimplemented!(),
         }
     }
     fn get_symbol(&self) -> char {
