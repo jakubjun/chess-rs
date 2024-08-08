@@ -1,6 +1,3 @@
-use std::{collections::HashMap, fmt::Display, io::stdin};
-
-use colored::{Colorize, CustomColor};
 use game::Game;
 
 mod figure;
