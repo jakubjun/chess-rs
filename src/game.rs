@@ -46,14 +46,14 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         const default_setup: BoardSetup = &[
-            "wrwkwbwqwKwbwkwr",
-            "wpwpwpwpwpwpwpwp",
-            "                ",
-            "                ",
-            "                ",
-            "                ",
-            "bpbpbpbpbpbpbpbp",
             "brbkbbbqbKbbbkbr",
+            "bpbpbpbpbpbpbpbp",
+            "                ",
+            "                ",
+            "                ",
+            "                ",
+            "wpwpwpwpwpwpwpwp",
+            "wrwkwbwqwKwbwkwr",
         ];
         Self::from_str_arr(default_setup)
     }
