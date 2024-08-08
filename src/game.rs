@@ -1,0 +1,164 @@
+use std::{collections::HashMap, fmt::Display, io::stdin};
+
+use colored::{Colorize, CustomColor};
+
+use crate::figure::{Figure, FigureColor};
+
+pub type BoardSetup = &'static [&'static str; 8];
+pub type Coords = (char, u8);
+
+fn get_bg_color(coords: Coords) -> CustomColor {
+    let light_bg = CustomColor::new(204, 183, 174);
+    let dark_bg = CustomColor::new(112, 102, 119);
+    match coords {
+        (y, x) if x % 2 == y as u8 % 2 => light_bg,
+        _ => dark_bg,
+    }
+}
+
+fn read_algebraic() -> Result<(Coords, Coords), ()> {
+    let i = stdin();
+    let mut buf = String::new();
+    i.read_line(&mut buf).or(Err(()))?;
+    let from_x: char = buf[0..1].parse().or(Err(()))?;
+    let from_y: u8 = buf[1..2].parse().or(Err(()))?;
+    let to_x: char = buf[2..3].parse().or(Err(()))?;
+    let to_y: u8 = buf[3..4].parse().or(Err(()))?;
+    Ok(((from_x, from_y), (to_x, to_y)))
+}
+
+pub struct Game {
+    pub board: HashMap<Coords, Figure>,
+    at_turn: FigureColor,
+    turns: u32,
+    winner: Option<FigureColor>,
+    check: Option<FigureColor>,
+}
+
+impl Game {
+    pub fn new() -> Self {
+        const default_setup: BoardSetup = &[
+            "wrwkwbwqwKwbwkwr",
+            "wpwpwpwpwpwpwpwp",
+            "                ",
+            "                ",
+            "                ",
+            "                ",
+            "bpbpbpbpbpbpbpbp",
+            "brbkbbbqbKbbbkbr",
+        ];
+        Self::from_str_arr(default_setup)
+    }
+
+    fn from_str_arr(setup: BoardSetup) -> Self {
+        let mut board: HashMap<Coords, Figure> = HashMap::new();
+
+        for (i, row) in setup.iter().enumerate() {
+            let mut curr = &row[0..];
+            let mut j = 0;
+
+            while curr.len() >= 2 {
+                let fig = Figure::from_str(&curr[..2]);
+
+                if let Some(fig) = fig {
+                    let letter = ('a' as u8 + j) as char;
+                    let number = 8 - i as u8;
+                    board.insert((letter, number), fig);
+                }
+
+                j += 1;
+                curr = &curr[2..];
+            }
+        }
+
+        Game {
+            board,
+            at_turn: FigureColor::White,
+            winner: None,
+            check: None,
+            turns: 0,
+        }
+    }
+
+    fn turn(&mut self) -> Result<(), ()> {
+        println!("{}", "----------------------------".cyan());
+        loop {
+            println!("{}'s turn", self.at_turn);
+            println!("{}", self);
+            println!("input algebraic notation, eg 'a1a2': ");
+            let ((sx, sy), (tx, ty)) = read_algebraic()?;
+
+            let selected = self.board.get(&(sx, sy)).ok_or(())?;
+
+            if selected.color != self.at_turn {
+                println!("{}", "err: cannot move opponent's figure".red());
+                continue;
+            }
+
+            if selected.can_go(&(sx, sy), self, &(tx, ty)) {
+                let selected = self.board.remove(&(sx, sy)).ok_or(())?;
+                self.board.insert((tx, ty), selected);
+                break;
+            } else {
+                println!("{}", "err: this figure cannot go there".red());
+            };
+        }
+        self.switch_sides();
+        Ok(())
+    }
+
+    fn switch_sides(&mut self) {
+        if self.at_turn == FigureColor::Black {
+            self.at_turn = FigureColor::White
+        } else {
+            self.at_turn = FigureColor::Black
+        }
+    }
+
+    fn check(&mut self) {
+        todo!()
+    }
+
+    fn checkmate(&mut self) {
+        todo!()
+    }
+
+    pub fn game_loop(&mut self) -> Result<(), ()> {
+        while self.winner.is_none() {
+            self.turn()?;
+        }
+        Ok(())
+    }
+}
+
+impl Display for Game {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "  ")?;
+        for j in 'a'..'i' {
+            write!(f, " {} ", j)?;
+        }
+        writeln!(f)?;
+        for i in (1..9).rev() {
+            write!(f, "{} ", i)?;
+            for j in 'a'..'i' {
+                match self.board.get(&(j, i)) {
+                    Some(figure) => {
+                        let symbol = format!(" {} ", figure).on_custom_color(get_bg_color((j, i)));
+                        write!(f, "{}", symbol)?;
+                    }
+                    None => {
+                        let symbol = "   ".on_custom_color(get_bg_color((j, i)));
+                        write!(f, "{}", symbol)?;
+                    }
+                }
+            }
+            write!(f, " {}", i)?;
+            writeln!(f)?;
+        }
+        write!(f, "  ")?;
+        for j in 'a'..'i' {
+            write!(f, " {} ", j)?;
+        }
+        Ok(())
+    }
+}
