@@ -75,10 +75,10 @@ impl Figure {
                 }
 
                 // TODO this needs to check if the 'across' field is occupied by an opponent
-                let en_passant = (field.0 as i8).abs_diff(target.0 as i8) == 1
+                let takes_across = (field.0 as i8).abs_diff(target.0 as i8) == 1
                     && (target.1 as i8 - field.1 as i8) == y_diff;
 
-                if goes_straight || en_passant {
+                if goes_straight || takes_across {
                     Ok(())
                 } else {
                     Err("the figure cannot go there")
