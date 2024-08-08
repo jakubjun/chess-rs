@@ -35,12 +35,18 @@ fn read_algebraic() -> Result<(Coords, Coords), &'static str> {
     Ok(((from_x, from_y), (to_x, to_y)))
 }
 
+enum GameState {
+    Check(FigureColor),
+    Checkmate(FigureColor),
+    Stalemate(FigureColor),
+    Play,
+}
+
 pub struct Game {
     pub board: HashMap<Coords, Figure>,
     at_turn: FigureColor,
     turns: u32,
-    winner: Option<FigureColor>,
-    check: Option<FigureColor>,
+    state: GameState,
 }
 
 impl Game {
@@ -82,9 +88,8 @@ impl Game {
         Game {
             board,
             at_turn: FigureColor::White,
-            winner: None,
-            check: None,
             turns: 0,
+            state: GameState::Play,
         }
     }
 
@@ -92,7 +97,7 @@ impl Game {
         println!("{}", "----------------------------".cyan());
         println!("{}'s turn", self.at_turn);
         println!("{}", self);
-        println!("input algebraic notation, eg 'a1a2': ");
+        println!("input '{{from}}{{to}}', eg 'a1a2': ");
         let ((sx, sy), (tx, ty)) = read_algebraic()?;
 
         let selected = self
@@ -136,7 +141,7 @@ impl Game {
     }
 
     pub fn game_loop(&mut self) {
-        while self.winner.is_none() {
+        while matches!(self.state, GameState::Play | GameState::Check(_)) {
             match self.turn() {
                 Ok(_) => (),
                 Err(e) => println!("{}", format!("err: {}", e).red()),
