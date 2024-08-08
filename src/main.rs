@@ -40,143 +40,52 @@ impl Display for Figure {
 
 impl Game {
     fn new() -> Self {
+        const default_setup: &[&str; 8] = &[
+            "wrwkwbwqwKwbwkwr",
+            "wpwpwpwpwpwpwpwp",
+            "                ",
+            "                ",
+            "                ",
+            "                ",
+            "bpbpbpbpbpbpbpbp",
+            "brbkbbbqbKbbbkbr",
+        ];
+        Self::from_str_arr(default_setup)
+    }
+
+    fn from_str_arr(setup: &[&str; 8]) -> Self {
         let mut board: HashMap<Coords, Figure> = HashMap::new();
 
-        board.insert(
-            ('a', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Rook,
-            },
-        );
-        board.insert(
-            ('b', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Knight,
-            },
-        );
-        board.insert(
-            ('c', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Bishop,
-            },
-        );
-        board.insert(
-            ('d', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Queen,
-            },
-        );
-        board.insert(
-            ('e', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::King,
-            },
-        );
-        board.insert(
-            ('f', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Bishop,
-            },
-        );
-        board.insert(
-            ('g', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Knight,
-            },
-        );
-        board.insert(
-            ('h', 1),
-            Figure {
-                color: FigureColor::Black,
-                variant: FigureVariant::Rook,
-            },
-        );
-        board.insert(
-            ('a', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Rook,
-            },
-        );
-        board.insert(
-            ('b', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Knight,
-            },
-        );
-        board.insert(
-            ('c', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Bishop,
-            },
-        );
-        board.insert(
-            ('d', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Queen,
-            },
-        );
-        board.insert(
-            ('e', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::King,
-            },
-        );
-        board.insert(
-            ('f', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Bishop,
-            },
-        );
-        board.insert(
-            ('g', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Knight,
-            },
-        );
-        board.insert(
-            ('h', 8),
-            Figure {
-                color: FigureColor::White,
-                variant: FigureVariant::Rook,
-            },
-        );
-        for i in 'a'..'i' {
-            board.insert(
-                (i, 2),
-                Figure {
-                    color: FigureColor::Black,
-                    variant: FigureVariant::Pawn,
-                },
-            );
-            board.insert(
-                (i, 7),
-                Figure {
-                    color: FigureColor::White,
-                    variant: FigureVariant::Pawn,
-                },
-            );
+        for (i, row) in setup.iter().enumerate() {
+            // let mut row_iter = row.chars();
+            //
+            // while let Some(pair) = row_iter.next() {}
+            //
+            // row_iter.nth(2);
+            let mut curr = &row[0..];
+            let mut j = 0;
+
+            while curr.len() >= 2 {
+                let fig = Figure::from_str(&curr[..2]);
+
+                if let Some(fig) = fig {
+                    let letter = ('a' as u8 + j) as char;
+                    let number = 8 - i as u8;
+                    dbg!((letter, number));
+                    board.insert((letter, number), fig);
+                }
+
+                j += 1;
+                curr = &curr[2..];
+            }
         }
 
         Game {
             board,
             at_turn: FigureColor::White,
-            turns: 0,
             winner: None,
             check: None,
+            turns: 0,
         }
     }
 
@@ -221,6 +130,13 @@ impl Game {
 
     fn checkmate(&mut self) {
         todo!()
+    }
+
+    fn game_loop(&mut self) -> Result<(), ()> {
+        while self.winner.is_none() {
+            self.turn()?;
+        }
+        Ok(())
     }
 }
 type Coords = (char, u8);
@@ -364,9 +280,6 @@ impl Figure {
             _ => false,
         }
     }
-}
-
-impl Figure {
     fn get_symbol(&self) -> char {
         match (&self.color, &self.variant) {
             (FigureColor::White, FigureVariant::Rook) => '♖',
@@ -383,12 +296,42 @@ impl Figure {
             (FigureColor::Black, FigureVariant::King) => '♚',
         }
     }
+
+    fn from_str(code: &str) -> Option<Self> {
+        let color_code = code.chars().nth(0).unwrap();
+        let variant_code = code.chars().nth(1).unwrap();
+
+        let color = match color_code {
+            'b' => Some(FigureColor::Black),
+            'w' => Some(FigureColor::White),
+            ' ' => None,
+            _ => panic!(),
+        };
+
+        let variant = match variant_code {
+            'p' => Some(FigureVariant::Pawn),
+            'r' => Some(FigureVariant::Rook),
+            'k' => Some(FigureVariant::Knight),
+            'b' => Some(FigureVariant::Bishop),
+            'K' => Some(FigureVariant::King),
+            'q' => Some(FigureVariant::Queen),
+            ' ' => None,
+            _ => panic!(),
+        };
+
+        if color.is_none() || variant.is_none() {
+            None
+        } else {
+            Some(Figure {
+                variant: variant?,
+                color: color?,
+            })
+        }
+    }
 }
 
 fn main() -> Result<(), ()> {
     let mut g = Game::new();
-    while g.winner.is_none() {
-        g.turn()?;
-    }
+    g.game_loop()?;
     Ok(())
 }
