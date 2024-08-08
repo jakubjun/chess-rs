@@ -57,13 +57,13 @@ impl Figure {
         match self.variant {
             FigureVariant::Pawn => {
                 let y_diff: i8 = match self.color {
-                    FigureColor::White => -1,
-                    FigureColor::Black => 1,
+                    FigureColor::Black => -1,
+                    FigureColor::White => 1,
                 };
 
                 let allow_double = matches!(
                     (&self.color, field.1),
-                    (FigureColor::White, 7) | (FigureColor::Black, 2)
+                    (FigureColor::Black, 7) | (FigureColor::White, 2)
                 );
 
                 let mut goes_straight =
