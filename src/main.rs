@@ -24,8 +24,8 @@ struct Game {
 impl Display for FigureColor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::White => write!(f, "{}", " white ".white().on_black()),
-            Self::Black => write!(f, "{}", " black ".black().on_white()),
+            Self::White => write!(f, "{}", " white ".black().on_white()),
+            Self::Black => write!(f, "{}", " black ".white().on_black()),
         }?;
         Ok(())
     }
