@@ -87,14 +87,14 @@ impl Figure {
             FigureVariant::Rook => {
                 if target.1 == field.1 && target.0 != field.0 {
                     let range = if field.0 > target.0 {
-                        target.0 as u8..field.0 as u8 - 1
+                        target.0 as u32..field.0 as u32 - 1
                     } else {
-                        field.0 as u8 + 1..target.0 as u8
+                        field.0 as u32 + 1..target.0 as u32
                     };
                     for i in range {
                         if game
                             .board
-                            .get(&(('a' as u8 + i) as char, field.1))
+                            .get(&(char::from_u32('a' as u32 + i).unwrap(), field.1))
                             .is_some()
                         {
                             return Err("something is in the way");

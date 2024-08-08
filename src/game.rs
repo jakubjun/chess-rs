@@ -35,6 +35,7 @@ fn read_algebraic() -> Result<(Coords, Coords), &'static str> {
     Ok(((from_x, from_y), (to_x, to_y)))
 }
 
+#[allow(dead_code)]
 enum GameState {
     Check(FigureColor),
     Checkmate(FigureColor),
@@ -45,13 +46,14 @@ enum GameState {
 pub struct Game {
     pub board: HashMap<Coords, Figure>,
     at_turn: FigureColor,
+    #[allow(dead_code)]
     turns: u32,
     state: GameState,
 }
 
 impl Game {
     pub fn new() -> Self {
-        const default_setup: BoardSetup = &[
+        const DEFAULT_SETUP: BoardSetup = &[
             "brbkbbbqbKbbbkbr",
             "bpbpbpbpbpbpbpbp",
             "                ",
@@ -61,26 +63,26 @@ impl Game {
             "wpwpwpwpwpwpwpwp",
             "wrwkwbwqwKwbwkwr",
         ];
-        Self::from_str_arr(default_setup)
+        Self::from_str_arr(DEFAULT_SETUP)
     }
 
     fn from_str_arr(setup: BoardSetup) -> Self {
         let mut board: HashMap<Coords, Figure> = HashMap::new();
 
-        for (i, row) in setup.iter().enumerate() {
-            let mut curr = &row[0..];
-            let mut j = 0;
+        for (rank_idx, rank) in setup.iter().enumerate() {
+            let mut curr = &rank[0..];
+            let mut file_cnt = 0;
 
             while curr.len() >= 2 {
                 let fig = Figure::from_str(&curr[..2]);
 
                 if let Some(fig) = fig {
-                    let letter = ('a' as u8 + j) as char;
-                    let number = 8 - i as u8;
+                    let letter = char::from_u32('a' as u32 + file_cnt).unwrap();
+                    let number = 8 - rank_idx as u8;
                     board.insert((letter, number), fig);
                 }
 
-                j += 1;
+                file_cnt += 1;
                 curr = &curr[2..];
             }
         }
@@ -98,24 +100,25 @@ impl Game {
         println!("{}'s turn", self.at_turn);
         println!("{}", self);
         println!("input '{{from}}{{to}}', eg 'a1a2': ");
-        let ((sx, sy), (tx, ty)) = read_algebraic()?;
+        let ((from_x, from_y), (to_x, to_y)) = read_algebraic()?;
 
-        let selected = self
+        let selected_figure = self
             .board
-            .remove(&(sx, sy))
+            .remove(&(from_x, from_y))
             .ok_or("theres no figure on that field")?;
 
-        if selected.color != self.at_turn {
+        if selected_figure.color != self.at_turn {
+            self.board.insert((from_x, from_y), selected_figure);
             return Err("cannot move opponent's figure");
         }
 
-        match selected.can_go(&(sx, sy), self, &(tx, ty)) {
+        match selected_figure.can_go(&(from_x, from_y), self, &(to_x, to_y)) {
             Ok(_) => {
-                self.board.insert((tx, ty), selected);
+                self.board.insert((to_x, to_y), selected_figure);
                 Ok(())
             }
             Err(e) => {
-                self.board.insert((sx, sy), selected);
+                self.board.insert((from_x, from_y), selected_figure);
                 Err(e)
             }
         }?;
@@ -132,14 +135,6 @@ impl Game {
         }
     }
 
-    fn check(&mut self) {
-        todo!()
-    }
-
-    fn checkmate(&mut self) {
-        todo!()
-    }
-
     pub fn game_loop(&mut self) {
         while matches!(self.state, GameState::Play | GameState::Check(_)) {
             match self.turn() {
@@ -153,31 +148,36 @@ impl Game {
 impl Display for Game {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "  ")?;
-        for j in 'a'..'i' {
-            write!(f, " {} ", j)?;
+        for file_letter in 'a'..'i' {
+            write!(f, " {} ", file_letter)?;
         }
         writeln!(f)?;
-        for i in (1..9).rev() {
-            write!(f, "{} ", i)?;
-            for j in 'a'..'i' {
-                match self.board.get(&(j, i)) {
+
+        for rank_idx in (1..9).rev() {
+            write!(f, "{} ", rank_idx)?;
+
+            for file_letter in 'a'..'i' {
+                match self.board.get(&(file_letter, rank_idx)) {
                     Some(figure) => {
-                        let symbol = format!(" {} ", figure).on_custom_color(get_bg_color((j, i)));
+                        let symbol = format!(" {} ", figure)
+                            .on_custom_color(get_bg_color((file_letter, rank_idx)));
                         write!(f, "{}", symbol)?;
                     }
                     None => {
-                        let symbol = "   ".on_custom_color(get_bg_color((j, i)));
+                        let symbol = "   ".on_custom_color(get_bg_color((file_letter, rank_idx)));
                         write!(f, "{}", symbol)?;
                     }
                 }
             }
-            write!(f, " {}", i)?;
+            write!(f, " {}", rank_idx)?;
             writeln!(f)?;
         }
         write!(f, "  ")?;
-        for j in 'a'..'i' {
-            write!(f, " {} ", j)?;
+
+        for file_letter in 'a'..'i' {
+            write!(f, " {} ", file_letter)?;
         }
+
         Ok(())
     }
 }
